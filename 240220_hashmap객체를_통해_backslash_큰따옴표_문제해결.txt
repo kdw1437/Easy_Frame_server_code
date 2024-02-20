@@ -1,0 +1,79 @@
+package com.jurosys.extension.com;
+
+import com.uro.DaoService;
+import com.uro.log.LoggerMg;
+import com.uro.service.sql.SQLServiceException;
+import com.uro.transfer.ListParam;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import java.util.*;
+public class ProcessYieldCurves {
+    Logger log = LoggerMg.getInstance().getLogger("fw");
+
+    public void execute(DaoService dao) {
+        try {
+            // Execute the SQL query
+            dao.sqlexe("s_selectYieldCurves3", false); // Assume "s_selectYieldCurves" is the SQL query ID
+            ListParam result = dao.getNowListParam(); // Get the result of the query
+
+            // Initialize a JSON object to hold the final structure
+            JSONObject finalJson = new JSONObject();
+            JSONArray yieldsArray = new JSONArray();
+
+            // Iterate through the rows in the result
+            for (int i = 0; i < result.rowSize(); i++) {
+                String baseDt = result.getValue(i, "baseDt", "");
+                String dataSetId = result.getValue(i, "dataSetId", "");
+                String dataId = result.getValue(i, "dataId", "");
+                String currency = result.getValue(i, "currency", "");
+
+                JSONObject yieldObject = new JSONObject();
+                yieldObject.put("tenor", result.getValue(i, "yields.tenor", ""));
+                yieldObject.put("rate", result.getValue(i, "yields.rate", ""));
+
+                // Check if this is a new dataId or an existing one
+                JSONObject existingDataIdObject = findInArray(yieldsArray, dataId);
+                if (existingDataIdObject != null) {
+                    // Existing dataId, add to its yields array
+                    existingDataIdObject.getJSONArray("yields").put(yieldObject);
+                } else {
+                    // New dataId, create a new entry
+                    JSONObject newDataIdObject = new JSONObject();
+                    newDataIdObject.put("baseDt", baseDt);
+                    newDataIdObject.put("dataSetId", dataSetId);
+                    newDataIdObject.put("dataId", dataId);
+                    newDataIdObject.put("currency", currency);
+
+                    JSONArray newYieldsArray = new JSONArray();
+                    newYieldsArray.put(yieldObject);
+                    newDataIdObject.put("yields", newYieldsArray);
+
+                    yieldsArray.put(newDataIdObject);
+                }
+            }
+
+            finalJson.put("yieldCurves", yieldsArray);
+            Map<String, Object> hashMap = finalJson.toMap();
+            String jsonResponse = finalJson.toString().replace("\\", "");
+            dao.setValue("response", hashMap);
+            log.info("HashMap contents: " + hashMap.toString());
+            //dao.setValue("response", finalJson.toString());
+            log.info(finalJson.toString());
+
+        } catch (SQLServiceException e) {
+            log.error("Error processing yield curves", e);
+            dao.setError("Error processing yield curves: " + e.getMessage());
+        }
+    }
+
+    private JSONObject findInArray(JSONArray array, String dataId) {
+        for (int i = 0; i < array.length(); i++) {
+            JSONObject obj = array.getJSONObject(i);
+            if (obj.getString("dataId").equals(dataId)) {
+                return obj;
+            }
+        }
+        return null;
+    }
+}
