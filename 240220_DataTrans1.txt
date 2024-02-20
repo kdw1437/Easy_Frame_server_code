@@ -1,0 +1,58 @@
+package com.jurosys.extension.com;
+
+import org.slf4j.Logger;
+import com.uro.DaoService;
+import com.uro.log.LoggerMg;
+import com.uro.service.sql.SQLServiceException;
+import com.uro.transfer.ListParam;
+import org.apache.commons.lang3.StringUtils;
+import java.util.List;
+import java.util.Map;
+
+public class DataTrans1 {
+    Logger log = LoggerMg.getInstance().getLogger();
+
+    public void execute(DaoService dao) {
+
+        // Assume jsonStr is the JSON string received in the DaoService object
+        String jsonStr = dao.getStringValue("test");//참조변수
+        
+        // Check if the JSON string is null or empty
+        if (StringUtils.isBlank(jsonStr)) {
+            log.error("JSON String is null or empty");
+            return; // Stop further execution if JSON is null or empty
+        }
+        
+        log.info("Received JSON String: " + jsonStr);
+
+        // Convert the JSON string to a ListParam object
+        ListParam listParam = dao.jsonToListParam(jsonStr);
+        log.info("Converted ListParam: " + listParam.toString());
+        /*// Logging each entry in listParam
+        if (listParam != null) {
+            List<Map<String, Object>> listMap = listParam.toListMap();
+            for (int i = 0; i < listMap.size(); i++) {
+                log.info("ListParam Entry " + i + ": " + listMap.get(i).toString());
+            }
+        } else {
+            log.error("ListParam is null");
+        }
+        */
+        // Set the converted ListParam in the DaoService object
+        dao.setValue("InsertUserJobTp", listParam);
+        log.info("ListParam set in DaoService with key 'InsertUserJobTp'");
+
+        // Attempt to execute the SQL statement
+        // Attempt to execute the SQL statement
+        try {
+            dao.sqlexe("s_insertUserJobTpHstr", false);
+            log.info("SQL execution successful for s_insertUserJobTpHstr");
+        } catch (SQLServiceException e) {
+            log.error("SQL execution failed for s_insertUserJobTpHstr", e);
+            e.printStackTrace();
+        }
+
+        // Additional log to confirm the method execution is complete
+        log.info("execute method in DataTrans1 completed");
+    }
+}
