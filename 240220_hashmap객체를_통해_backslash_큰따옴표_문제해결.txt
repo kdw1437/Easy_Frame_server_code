@@ -36,8 +36,15 @@ public class ProcessYieldCurves {
                 String currency = result.getValue(i, "currency", "");
 
                 JSONObject yieldObject = new JSONObject();
-                yieldObject.put("tenor", result.getValue(i, "yields.tenor", ""));
-                yieldObject.put("rate", result.getValue(i, "yields.rate", ""));
+                String tenorStr = result.getValue(i, "yields.tenor", "");
+                double tenorNum = Double.parseDouble(tenorStr);  // Converts string to double
+                yieldObject.put("tenor", tenorNum);  // Automatically uses numeric JSON representation
+                //yieldObject.put("tenor", result.getValue(i, "yields.tenor", ""));
+                
+                String rateStr = result.getValue(i, "yields.rate", "");
+                double rateNum = Double.parseDouble(rateStr);  // Converts string to double
+                yieldObject.put("rate", rateNum);
+                //yieldObject.put("rate", result.getValue(i, "yields.rate", ""));
 
                 // 새로운 dataId 인지 있는 것인지 확인한다.
                 JSONObject existingDataIdObject = findInArray(yieldsArray, dataId);
